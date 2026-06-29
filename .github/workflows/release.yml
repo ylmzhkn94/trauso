@@ -1,8 +1,15 @@
 name: Release
+
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (for example, v1.0.2)'
+        required: true
+        type: string
 
 jobs:
   publish-tauri:
@@ -12,23 +19,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'windows-latest'
+          - platform: windows-latest
             args: ''
+            rust-target: x86_64-pc-windows-msvc
+          - platform: macos-13
+            args: '--target x86_64-apple-darwin'
+            rust-target: x86_64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: setup node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
 
       - name: install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0
@@ -37,9 +53,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Trauso ${{ github.ref_name }}'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
+          tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          releaseName: 'Trauso ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}'
+          releaseBody: 'See the assets to download this version and install. macOS Intel builds are produced on macos-13 with the x86_64-apple-darwin target.'
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
