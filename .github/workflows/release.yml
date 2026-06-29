@@ -8,8 +8,14 @@ on:
     inputs:
       tag:
         description: 'Release tag to publish (for example, v1.0.2)'
-        required: true
+        required: false
         type: string
+  pull_request:
+  push:
+    branches:
+      - 'sixteen'
+
+
 
 jobs:
   publish-tauri:
