@@ -8,12 +8,15 @@ on:
     inputs:
       tag:
         description: 'Release tag to publish (for example, v1.0.2)'
+        required: true
+        type: string
         required: false
         type: string
   pull_request:
   push:
 
 
+branch: master
 
 jobs:
   publish-tauri:
@@ -26,6 +29,7 @@ jobs:
           - platform: windows-latest
             args: ''
             rust-target: x86_64-pc-windows-msvc
+          - platform: macos-15-intel
           - platform: macos-13
             args: '--target x86_64-apple-darwin'
             rust-target: x86_64-apple-darwin
@@ -58,8 +62,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          releaseName: "Trauso ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          releaseBody: 'See the assets to download this version and install. macOS Intel builds are produced on macos-15-intel with the x86_64-apple-darwin target.'
           releaseName: 'Trauso ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}'
           releaseBody: 'See the assets to download this version and install. macOS Intel builds are produced on macos-13 with the x86_64-apple-darwin target.'
+
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
